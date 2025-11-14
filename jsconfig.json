@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "baseUrl": "app/javascript",
+    "paths": {
+      "@components": ["./components"],
+      "@components/*": ["./components/*"],
+      "@config": ["./config"],
+      "@config/*": ["./config/*"],
+      "@constants": ["./constants"],
+      "@constants/*": ["./constants/*"],
+      "@contexts": ["./contexts"],
+      "@contexts/*": ["./contexts/*"],
+      "@forms": ["./forms"],
+      "@forms/*": ["./forms/*"],
+      "@hooks": ["./hooks"],
+      "@hooks/*": ["./hooks/*"],
+      "@layout": ["./layout"],
+      "@layout/*": ["./layout/*"],
+      "@pages": ["./pages"],
+      "@pages/*": ["./pages/*"],
+      "@routes": ["./routes"],
+      "@routes/*": ["./routes/*"],
+      "@utils": ["./utils"],
+      "@utils/*": ["./utils/*"],
+      "@apis": ["./apis"],
+      "@apis/*": ["./apis/*"]
+    }
+  },
+  "exclude": ["node_modules"]
+}
+

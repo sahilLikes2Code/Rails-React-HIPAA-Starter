@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "🚀 Setting up Rails + React HIPAA Starter..."
+
+# Check for required tools
+command -v ruby >/dev/null 2>&1 || { echo "❌ Ruby is required but not installed. Aborting." >&2; exit 1; }
+command -v bundle >/dev/null 2>&1 || { echo "❌ Bundler is required but not installed. Aborting." >&2; exit 1; }
+command -v yarn >/dev/null 2>&1 || { echo "❌ Yarn is required but not installed. Aborting." >&2; exit 1; }
+command -v psql >/dev/null 2>&1 || { echo "⚠️  PostgreSQL is not installed. You'll need it for the database." >&2; }
+
+echo "✅ Prerequisites check passed"
+
+# Install Ruby dependencies
+echo ""
+echo "📦 Installing Ruby gems..."
+bundle install
+
+# Install JavaScript dependencies
+echo ""
+echo "📦 Installing JavaScript packages..."
+if [ ! -f yarn.lock ]; then
+  touch yarn.lock
+fi
+yarn install
+
+# Create necessary directories
+echo ""
+echo "📁 Creating necessary directories..."
+mkdir -p app/assets/config
+mkdir -p app/assets/images
+mkdir -p app/assets/builds
+touch app/assets/builds/.keep
+
+# Create manifest.js if it doesn't exist
+if [ ! -f app/assets/config/manifest.js ]; then
+  echo "//= link_tree ../images
+//= link_directory ../stylesheets .css
+//= link application.js" > app/assets/config/manifest.js
+  echo "✅ Created app/assets/config/manifest.js"
+fi
+
+# Set up encryption key (development only)
+echo ""
+echo "🔐 Setting up encryption keys..."
+if [ ! -f config/master.key ]; then
+  echo "⚠️  No master.key found. Setting up new credentials..."
+  
+  # If credentials.yml.enc exists but can't be decrypted, remove it
+  # This happens when cloning the repo - the encrypted file exists but master.key doesn't
+  if [ -f config/credentials.yml.enc ]; then
+    echo "   Removing existing credentials.yml.enc (can't be decrypted without master.key)..."
+    rm -f config/credentials.yml.enc
+  fi
+  
+  # Generate new credentials using rails command
+  echo "   Creating new credentials file..."
+  # Set SECRET_KEY_BASE as fallback to prevent errors during credentials creation
+  export SECRET_KEY_BASE=$(openssl rand -hex 64)
+  
+  # Create credentials file with secret_key_base and lockbox_master_key
+  # Use a script that writes the content
+  cat > /tmp/create_creds.rb <<'RUBY'
+require 'yaml'
+require 'openssl'
+
+content = {
+  secret_key_base: ENV['SECRET_KEY_BASE'] || OpenSSL::Random.hex(64),
+  lockbox_master_key: OpenSSL::Random.hex(32)
+}
+
+File.write('/tmp/creds_content.yml', content.to_yaml)
+RUBY
+  
+  ruby /tmp/create_creds.rb 2>/dev/null
+  
+  if [ -f /tmp/creds_content.yml ]; then
+    EDITOR="cp /tmp/creds_content.yml" rails credentials:edit 2>/dev/null && {
+      echo "✅ Credentials and master key created"
+      rm -f /tmp/creds_content.yml /tmp/create_creds.rb
+    } || {
+      echo "   ⚠️  Could not create credentials automatically."
+      echo "   You can create them manually with: rails credentials:edit"
+      rm -f /tmp/creds_content.yml /tmp/create_creds.rb
+    }
+  else
+    echo "   ⚠️  Could not generate credentials content."
+    echo "   You can create them manually with: rails credentials:edit"
+    rm -f /tmp/create_creds.rb
+  fi
+else
+  echo "✅ Master key already exists"
+fi
+
+# Create database
+echo ""
+echo "🗄️  Setting up database..."
+if rails db:create 2>/dev/null; then
+  echo "✅ Database created"
+else
+  echo "⚠️  Database may already exist or there was an error"
+fi
+
+# Run migrations
+echo ""
+echo "🔄 Running migrations..."
+if rails db:migrate 2>/dev/null; then
+  echo "✅ Migrations completed"
+else
+  echo "⚠️  No migrations to run or error occurred"
+fi
+
+# Build assets
+echo ""
+echo "🎨 Building assets..."
+yarn build:css || echo "⚠️  CSS build had issues (this is okay if stylesheets don't exist yet)"
+
+echo ""
+echo "✨ Setup complete!"
+echo ""
+echo "Next steps:"
+echo "  1. Update config/database.yml with your PostgreSQL credentials"
+echo "  2. Run: bin/dev"
+echo "  3. Visit: http://localhost:3000"
+echo ""
+echo "For production, make sure to:"
+echo "  - Set LOCKBOX_MASTER_KEY in credentials or environment"
+echo "  - Configure all HIPAA compliance requirements"
+echo "  - Review HIPAA_COMPLIANCE_PLAN.md"
+

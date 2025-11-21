@@ -47,6 +47,7 @@ module RailsReactHipaaStarter
       :otp_secret,
       :otp_backup_codes,
       # PHI fields (encrypted but still shouldn't be logged)
+      :email,
       :first_name,
       :last_name,
       :phone_number,

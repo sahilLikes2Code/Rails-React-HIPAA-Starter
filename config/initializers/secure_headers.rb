@@ -10,8 +10,8 @@ SecureHeaders::Configuration.default do |config|
   config.csp = {
     base_uri: %w['self'],
     default_src: %w['self'],
-    script_src: %w['self' 'unsafe-inline'],
-    style_src: %w['self' 'unsafe-inline'],
+    script_src: %w['self'],
+    style_src: %w['self'],
     img_src: %w['self' data: https:],
     font_src: %w['self' data:],
     connect_src: %w['self'],

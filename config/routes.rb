@@ -9,6 +9,7 @@ Rails.application.routes.draw do
       # Auth endpoints (using Devise sessions)
       get "auth/me", to: "sessions#me"
       post "auth/sign_in", to: "sessions#create"
+      post "auth/verify_mfa", to: "sessions#verify_mfa"
       delete "auth/sign_out", to: "sessions#destroy"
       post "auth/sign_up", to: "registrations#create"
 

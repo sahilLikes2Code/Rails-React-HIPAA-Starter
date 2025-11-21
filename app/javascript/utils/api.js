@@ -18,14 +18,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle response errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle authentication errors
     if (error.response?.status === 401) {
-      // Redirect to login if not already there
-      if (window.location.pathname !== "/users/sign_in") {
+      // Check if this is a session timeout (user was previously authenticated)
+      // vs initial login failure
+      const isAuthenticatedRequest = error.config?.url !== "auth/sign_in" && 
+                                     error.config?.url !== "auth/sign_up";
+      
+      if (isAuthenticatedRequest && window.location.pathname !== "/users/sign_in") {
+        sessionStorage.setItem("session_timeout", "true");
         window.location.href = "/users/sign_in";
       }
     }

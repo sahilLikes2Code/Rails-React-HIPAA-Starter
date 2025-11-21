@@ -89,8 +89,35 @@ module Api
         }
 
         if include_details
-          data[:object] = version.object
-          data[:object_changes] = version.object_changes
+          phi_fields = %w[first_name last_name phone_number date_of_birth email]
+          
+          object = version.object&.dup || {}
+          object_changes = version.object_changes&.dup || {}
+          
+          if object.is_a?(Hash)
+            phi_fields.each do |field|
+              if object[field]
+                object[field] = "[REDACTED]"
+              end
+              if object[field.to_s]
+                object[field.to_s] = "[REDACTED]"
+              end
+            end
+          end
+          
+          if object_changes.is_a?(Hash)
+            phi_fields.each do |field|
+              if object_changes[field]
+                object_changes[field] = ["[REDACTED]", "[REDACTED]"]
+              end
+              if object_changes[field.to_s]
+                object_changes[field.to_s] = ["[REDACTED]", "[REDACTED]"]
+              end
+            end
+          end
+          
+          data[:object] = object
+          data[:object_changes] = object_changes
           data[:item] = version.item ? {
             id: version.item.id,
             class: version.item.class.name

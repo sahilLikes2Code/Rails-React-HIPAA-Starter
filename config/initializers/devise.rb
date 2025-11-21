@@ -24,5 +24,9 @@ Devise.setup do |config|
   # Two-factor authentication configuration (HIPAA Compliance)
   # MFA is enabled on User model - users must set up TOTP after registration
   # See: https://github.com/tinybike/devise-two-factor
+
+  # Session timeout (HIPAA Compliance)
+  # Sessions expire after 30 minutes of inactivity
+  config.timeout_in = 30.minutes
 end
 

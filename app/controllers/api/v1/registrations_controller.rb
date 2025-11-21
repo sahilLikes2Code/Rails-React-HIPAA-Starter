@@ -6,9 +6,22 @@ module Api
     class RegistrationsController < BaseController
       skip_before_action :authenticate_user!, only: [:create]
 
-      # POST /api/v1/auth/sign_up
       def create
-        user = User.new(user_params)
+        validator = UserParamsValidator.new
+        validation_result = validator.call(user_params.to_h)
+
+        unless validation_result.success?
+          return render_error(
+            "Validation failed",
+            status: :unprocessable_entity,
+            errors: validation_result.errors.to_h
+          )
+        end
+
+        validated_params = validation_result.to_h
+        validated_params[:date_of_birth] = Date.parse(validated_params[:date_of_birth]) if validated_params[:date_of_birth]
+
+        user = User.new(validated_params)
 
         if user.save
           sign_in(user)
@@ -16,8 +29,6 @@ module Api
             user: {
               id: user.id,
               email: user.email,
-              first_name: user.first_name,
-              last_name: user.last_name,
               two_factor_enabled: user.two_factor_enabled?
             },
             message: "Account created successfully"

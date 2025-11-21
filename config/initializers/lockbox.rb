@@ -16,13 +16,13 @@ end
 
 Lockbox.master_key = lockbox_key || ENV["LOCKBOX_MASTER_KEY"]
 
-# In development, generate a temporary key if not set (for testing only)
+# In development and test, generate a temporary key if not set (for testing only)
 # In production, this key MUST be set properly
 if Lockbox.master_key.blank?
-  if Rails.env.development?
-    # Generate a temporary key for development (not secure, for testing only)
+  if Rails.env.development? || Rails.env.test?
+    # Generate a temporary key for development/test (not secure, for testing only)
     Lockbox.master_key = SecureRandom.hex(32)
-    Rails.logger.warn "⚠️  WARNING: Using temporary Lockbox key for development. Set LOCKBOX_MASTER_KEY in credentials or ENV for production!"
+    Rails.logger.warn "⚠️  WARNING: Using temporary Lockbox key for #{Rails.env}. Set LOCKBOX_MASTER_KEY in credentials or ENV for production!" unless Rails.env.test?
   else
     raise "LOCKBOX_MASTER_KEY must be set in credentials or environment variable"
   end

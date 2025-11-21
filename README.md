@@ -123,7 +123,7 @@ bin/dev
 
 - **Rails 7.1** with React 18 integration
 - **HIPAA Compliance** - Encryption, audit logging, MFA support
-- **Authentication** - Devise with two-factor authentication support
+- **Authentication** - Devise with two-factor authentication support (OAuth2 via Doorkeeper - pending)
 - **Code Quality** - Rubocop, Prettier, ESLint
 - **Background Jobs** - Sidekiq for async processing
 - **Security** - Secure headers, rate limiting, input validation
@@ -225,6 +225,7 @@ db/migrate/           # Database migrations (includes User model with MFA fields
 - `rails ~> 7.1.3` - Web framework
 - `react-rails` - React integration
 - `devise ~> 4.9` - Authentication
+- `doorkeeper` - OAuth2 provider (pending)
 
 ### HIPAA Compliance
 - `lockbox` - Field-level encryption
@@ -275,6 +276,7 @@ See [CONFIGURATION.md](./CONFIGURATION.md) for detailed configuration options in
 
 ## Resources
 
+- [HIPAA Developer Guide](./HIPAA_DEVELOPER_GUIDE.md) - **Essential reading for developers** - Guidelines for maintaining HIPAA compliance when adding features
 - [Configuration Guide](./CONFIGURATION.md) - How to customize the starter for your needs
 - [HIPAA Compliance Plan](./HIPAA_COMPLIANCE_PLAN.md) - Comprehensive compliance guide
 - [Lockbox Documentation](https://github.com/ankane/lockbox)

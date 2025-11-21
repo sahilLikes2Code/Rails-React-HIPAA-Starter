@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated on mount
     checkAuth();
   }, []);
 
@@ -29,8 +28,10 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
       }
     } catch (error) {
-      // 401 means not authenticated, which is fine
       setUser(null);
+      if (sessionStorage.getItem("session_timeout")) {
+        sessionStorage.removeItem("session_timeout");
+      }
     } finally {
       setLoading(false);
     }
@@ -45,11 +46,39 @@ export const AuthProvider = ({ children }) => {
         setUser(response.data.data.user);
         return { success: true, user: response.data.data.user };
       }
+      if (response.data.requires_mfa) {
+        return {
+          success: false,
+          requiresMfa: true,
+          userId: response.data.user_id,
+          message: response.data.message || "MFA verification required",
+        };
+      }
       return { success: false, error: response.data.error };
     } catch (error) {
       return {
         success: false,
         error: error.response?.data?.error || "Login failed",
+      };
+    }
+  };
+
+  const verifyMfa = async (userId, password, otpCode) => {
+    try {
+      const response = await api.post("auth/verify_mfa", {
+        user_id: userId,
+        password: password,
+        otp_code: otpCode,
+      });
+      if (response.data.success) {
+        setUser(response.data.data.user);
+        return { success: true, user: response.data.data.user };
+      }
+      return { success: false, error: response.data.error };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || "MFA verification failed",
       };
     }
   };
@@ -78,7 +107,6 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       return { success: true };
     } catch (error) {
-      // Even if logout fails, clear local state
       setUser(null);
       return { success: true };
     }
@@ -90,6 +118,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    verifyMfa,
     isAuthenticated: !!user,
   };
 

@@ -25,6 +25,7 @@ module Api
 
       # POST /api/v1/users/two_factor_setup
       def create
+        # Reload to get latest OTP secret, but be careful with encrypted fields
         current_user.reload
 
         # CRITICAL: Do NOT regenerate the secret here!
@@ -33,7 +34,6 @@ module Api
           return
         end
 
-        # Get OTP code from params
         otp_code = params[:otp_attempt] || params[:code]
 
         if otp_code.blank?
@@ -42,10 +42,14 @@ module Api
         end
 
         if current_user.verify_otp(otp_code)
-          current_user.update(otp_required_for_login: true)
+          backup_codes = current_user.generate_backup_codes!
+          # Use update_column to bypass validations (we're only updating otp_required_for_login)
+          # This avoids issues with encrypted field validations after reload
+          current_user.update_column(:otp_required_for_login, true)
           render_success({
             message: "Two-factor authentication enabled successfully",
-            two_factor_enabled: true
+            two_factor_enabled: true,
+            backup_codes: backup_codes
           })
         else
           render_error("Invalid verification code. Please try again. Make sure you're entering the current 6-digit code from your authenticator app.", status: :unprocessable_entity)
@@ -54,7 +58,9 @@ module Api
 
       # DELETE /api/v1/users/two_factor_setup
       def destroy
-        current_user.update(
+        # Use update_columns to bypass validations (we're only updating MFA fields)
+        # This avoids issues with encrypted field validations
+        current_user.update_columns(
           otp_required_for_login: false,
           otp_secret: nil,
           otp_backup_codes: []

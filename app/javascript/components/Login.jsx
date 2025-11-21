@@ -5,21 +5,44 @@ import { useAuth } from "../contexts/AuthContext";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [requiresMfa, setRequiresMfa] = useState(false);
+  const [mfaUserId, setMfaUserId] = useState(null);
+  const { login, verifyMfa } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (sessionStorage.getItem("session_timeout")) {
+      setError("Your session has expired. Please sign in again.");
+      sessionStorage.removeItem("session_timeout");
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await login(email, password);
-    if (result.success) {
-      navigate("/");
+    if (requiresMfa) {
+      const result = await verifyMfa(mfaUserId, password, otpCode);
+      if (result.success) {
+        navigate("/");
+      } else {
+        setError(result.error || "Invalid verification code");
+      }
     } else {
-      setError(result.error || "Invalid email or password");
+      const result = await login(email, password);
+      if (result.success) {
+        navigate("/");
+      } else if (result.requiresMfa) {
+        setRequiresMfa(true);
+        setMfaUserId(result.userId);
+        setError("");
+      } else {
+        setError(result.error || "Invalid email or password");
+      }
     }
     setLoading(false);
   };
@@ -36,10 +59,12 @@ const Login = () => {
             </div>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            {requiresMfa ? "Enter verification code" : "Sign in to your account"}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            HIPAA-compliant secure access
+            {requiresMfa
+              ? "Enter the 6-digit code from your authenticator app"
+              : "HIPAA-compliant secure access"}
           </p>
         </div>
 
@@ -60,47 +85,92 @@ const Login = () => {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+            {!requiresMfa ? (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email address
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label htmlFor="otp-code" className="block text-sm font-medium text-gray-700 mb-2">
+                  Verification Code
+                </label>
+                <input
+                  id="otp-code"
+                  name="otp_code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  required
+                  maxLength={6}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  value={otpCode}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setOtpCode(value);
+                  }}
+                />
+                <p className="mt-2 text-sm text-gray-500 text-center">
+                  Enter the 6-digit code from your authenticator app or a backup code
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRequiresMfa(false);
+                    setOtpCode("");
+                    setMfaUserId(null);
+                  }}
+                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-500"
+                >
+                  Back to login
+                </button>
+              </div>
+            )}
 
             <div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (requiresMfa && otpCode.length !== 6)}
                 className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {loading
+                  ? requiresMfa
+                    ? "Verifying..."
+                    : "Signing in..."
+                  : requiresMfa
+                    ? "Verify"
+                    : "Sign in"}
               </button>
             </div>
           </form>

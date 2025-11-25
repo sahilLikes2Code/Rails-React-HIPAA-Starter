@@ -1,6 +1,6 @@
 # Rails + React HIPAA Starter
 
-A comprehensive starter template for building HIPAA-compliant Rails + React applications.
+A comprehensive starter template for building HIPAA-, SOC 2-, and GDPR-ready Rails + React applications.
 
 **Important:** This starter has **HIPAA compliance features enabled by default** on the User model (encryption, audit logging, MFA). However, you must:
 - Customize PHI fields for your specific models
@@ -9,7 +9,7 @@ A comprehensive starter template for building HIPAA-compliant Rails + React appl
 - Sign Business Associate Agreements
 - Configure production security
 
-See the [HIPAA Compliance Checklist](#hipaa-compliance-checklist) for complete requirements.
+See the [HIPAA Compliance Checklist](#hipaa-compliance-checklist) and the [SOC 2 & GDPR Enhancements](#soc-2--gdpr-enhancements) sections for complete requirements and follow-on controls.
 
 ## 🚀 Quick Start
 
@@ -123,6 +123,7 @@ bin/dev
 
 - **Rails 8.0** with React 18 integration
 - **HIPAA Compliance** - Encryption, audit logging, MFA support
+- **SOC 2 & GDPR Readiness** - Policy templates, consent center, data subject request workflows
 - **Authentication** - Devise with two-factor authentication support (OAuth2 via Doorkeeper - pending)
 - **Code Quality** - Rubocop, Prettier, ESLint
 - **Background Jobs** - Sidekiq for async processing
@@ -183,6 +184,48 @@ The User model has the following HIPAA features **already enabled**:
 - [ ] Set up backup and disaster recovery
 - [ ] Configure security scanning in CI/CD (Brakeman, bundler-audit)
 - [x] Review and customize policy templates in `policies/` directory
+
+## SOC 2 Compliance Checklist
+
+### ✅ Covered by the Starter
+
+- ✅ Centralized audit logging via `Compliance::AuditLogger` (`log/compliance.log`) with optional webhook fan-out.
+- ✅ Role-based access controls (Pundit policies, `rolify`) for enforcing least privilege (CC6/CC7).
+- ✅ Monitoring hooks for 5xx errors and Rack::Attack events with webhook alerts.
+- ✅ Policy templates for access control, change management, and incident response (`policies/SOC2_*`).
+- ✅ Automated data retention policy (`DataRetentionPolicy`) with overrides for evidence storage.
+- ✅ CI-ready tooling (Brakeman, bundler-audit, Rubocop) referenced in Gemfile.
+
+### ⚠️ Customer Actions
+
+- [ ] Customize and formally adopt SOC 2 policies (access control, incident response, vendor risk, change management).
+- [ ] Configure log shipping of `log/compliance.log` into your SIEM with ≥1-year retention.
+- [ ] Enable CI jobs to run Brakeman, bundler-audit, Rubocop, and RSpec on every PR.
+- [ ] Document change-management procedures (peer review, approvals) and capture evidence.
+- [ ] Schedule quarterly access reviews for privileged accounts and record the evidence.
+- [ ] Perform and document incident-response tabletop exercises (at least annually).
+- [ ] Ensure backup and disaster-recovery procedures are tested and logged.
+
+## GDPR Compliance Checklist
+
+### ✅ Covered by the Starter
+
+- ✅ Consent management (`consent_records`, React consent center `/privacy/consent`, audit trails).
+- ✅ Data Subject Request workflow (`data_subject_requests`, background job, playbook in `policies/DATA_SUBJECT_REQUESTS_PLAYBOOK.md`).
+- ✅ Retention automation and “right to be forgotten” helpers in `DataRetentionPolicy`.
+- ✅ Monitoring + breach alert hooks (500-series, Rack::Attack) for incident notification.
+- ✅ Policy templates for privacy notices, incident response, and data subject processes.
+
+### ⚠️ Customer Actions
+
+- [ ] Appoint a Data Protection Officer (DPO) or documented privacy lead.
+- [ ] Update public Privacy Policy & Terms to describe data processing, consent, and DSR channels.
+- [ ] Configure outbound email/SMS templates for consent receipts and DSR communications.
+- [ ] Set up identity verification for DSR submissions (e.g., signed links, ID checks).
+- [ ] Document cross-border data transfer mechanisms (SCCs, UK IDTA, etc.).
+- [ ] Ensure consent revocation flows trigger downstream system updates.
+- [ ] Configure breach-notification runbooks aligned with GDPR timelines (72-hour rule).
+- [ ] Sign Data Processing Agreements (DPAs) with subprocessors.
 
 ## SOC 2 & GDPR Enhancements
 

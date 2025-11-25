@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class RolifyCreateRoles < ActiveRecord::Migration[7.1]
+class RolifyCreateRoles < ActiveRecord::Migration[8.0]
   def change
     create_table(:roles, id: :uuid) do |t|
       t.string :name

@@ -5,15 +5,18 @@ module Api
     # Controller for MFA setup (HIPAA Compliance)
     # JSON-only API endpoint for two-factor authentication
     class TwoFactorSetupController < BaseController
+      before_action :authenticate_user!
       # GET /api/v1/users/two_factor_setup/new
       def new
-        current_user.reload
-
         # Generate secret if missing, but don't regenerate if one exists
-        current_user.generate_two_factor_secret! unless current_user.otp_secret.present?
-        current_user.reload
+        user = current_user
+        user.reload
+        
+        unless user.otp_secret.present?
+          user.generate_two_factor_secret!
+        end
 
-        qr_svg = current_user.qr_code_svg
+        qr_svg = user.qr_code_svg
         if qr_svg
           render_success({
             qr_code_url: "data:image/svg+xml;base64,#{Base64.strict_encode64(qr_svg)}"
@@ -21,6 +24,10 @@ module Api
         else
           render_error("Failed to generate QR code", status: :unprocessable_entity)
         end
+      rescue => e
+        Rails.logger.error("Error generating QR code: #{e.class}: #{e.message}")
+        Rails.logger.error(e.backtrace.join("\n"))
+        render_error("Failed to generate QR code: #{e.message}", status: :internal_server_error)
       end
 
       # POST /api/v1/users/two_factor_setup

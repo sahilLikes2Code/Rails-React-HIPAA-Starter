@@ -25,7 +25,7 @@
 # end
 
 # Migration example:
-# class CreateMedicalRecords < ActiveRecord::Migration[7.1]
+# class CreateMedicalRecords < ActiveRecord::Migration[8.0]
 #   def change
 #     create_table :medical_records, id: :uuid do |t|
 #       t.references :user, null: false, foreign_key: true, type: :uuid

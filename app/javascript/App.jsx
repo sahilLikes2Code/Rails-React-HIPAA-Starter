@@ -9,6 +9,8 @@ import AuditLogs from "./components/AuditLogs";
 import AuditDetail from "./components/AuditDetail";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
+import ConsentManager from "./components/ConsentManager";
+import DataSubjectRequests from "./components/DataSubjectRequests";
 
 // Application name - customize this for your application
 const APP_NAME = "HIPAA Starter";
@@ -69,6 +71,22 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/privacy/consent"
+            element={
+              <ProtectedRoute>
+                <ConsentManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/privacy/requests"
+            element={
+              <ProtectedRoute>
+                <DataSubjectRequests />
+              </ProtectedRoute>
+            }
+          />
           </Routes>
         </Router>
       </AuthProvider>
@@ -111,6 +129,18 @@ const Navigation = () => {
                   className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
                 >
                   Audit Logs
+                </Link>
+                <Link
+                  to="/privacy/consent"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+                >
+                  Consent Center
+                </Link>
+                <Link
+                  to="/privacy/requests"
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+                >
+                  Data Requests
                 </Link>
               </div>
             )}

@@ -24,6 +24,16 @@ RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
   config.include Devise::Test::ControllerHelpers, type: :controller
 
+  config.before(:suite) do
+    # Explicitly set Devise mapping for User model to resolve "Could not find a valid mapping" error
+    # Devise.mappings[:user] = Devise::Mapping.find_by_path!("/users") # Remove this line
+    Devise.mappings[:user] = Devise.add_mapping(:user, to: User)
+  end
+
+  config.before(:each, type: :controller) do
+    @request.env["devise.mapping"] = Devise.mappings[:user]
+  end
+
   config.before(:each) do
     PaperTrail.request.whodunnit = nil
   end

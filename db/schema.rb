@@ -10,9 +10,42 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_14_124047) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_25_113012) do
   # These are extensions that must be enabled in order to support this database
-  enable_extension "plpgsql"
+  enable_extension "pg_catalog.plpgsql"
+
+  create_table "consent_records", force: :cascade do |t|
+    t.uuid "user_id"
+    t.string "data_subject_identifier", null: false
+    t.string "purpose", null: false
+    t.boolean "granted", default: true, null: false
+    t.datetime "granted_at"
+    t.datetime "revoked_at"
+    t.string "source"
+    t.string "jurisdiction", default: "US"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["data_subject_identifier", "purpose"], name: "index_consent_records_on_subject_and_purpose", unique: true
+    t.index ["user_id"], name: "index_consent_records_on_user_id"
+  end
+
+  create_table "data_subject_requests", force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "data_subject_identifier", null: false
+    t.string "request_type", null: false
+    t.string "status", default: "queued", null: false
+    t.datetime "due_at"
+    t.datetime "completed_at"
+    t.jsonb "metadata", default: {}
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["data_subject_identifier", "request_type"], name: "index_dsr_on_identifier_and_type"
+    t.index ["request_type"], name: "index_data_subject_requests_on_request_type"
+    t.index ["status"], name: "index_data_subject_requests_on_status"
+    t.index ["user_id"], name: "index_data_subject_requests_on_user_id"
+  end
 
   create_table "roles", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name"
@@ -65,4 +98,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_124047) do
     t.index ["whodunnit"], name: "index_versions_on_whodunnit"
   end
 
+  add_foreign_key "consent_records", "users"
+  add_foreign_key "data_subject_requests", "users"
 end

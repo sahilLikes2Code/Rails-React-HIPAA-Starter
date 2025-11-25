@@ -4,40 +4,39 @@ This guide explains how to configure the application for your specific use case.
 
 ## Environment Variables
 
-Create a `.env` file in the root directory (or use your preferred environment variable management). Here are the key variables:
+Create a `.env` file (or populate your secrets manager). The table below summarizes the most important variables.
 
-### Required for Production
+| Variable | Required? | Default / Example | Purpose |
+| --- | --- | --- | --- |
+| `LOCKBOX_MASTER_KEY` | ✅ Production | `openssl rand -hex 32` | Encrypts PHI fields via Lockbox |
+| `SECRET_KEY_BASE` | ✅ Production | auto-set in dev; `rails secret` | Rails session + encryption |
+| `APP_URL` | ✅ | `https://app.example.com` | Used in mailers/links |
+| `MAILER_HOST` / `MAILER_SENDER` | ✅ | `app.example.com` / `noreply@example.com` | Devise emails |
+| `ALLOWED_ORIGINS` | ✅ | `https://app.example.com` | CORS whitelist |
+| `DATABASE_URL` | ⚙️ | `postgres://user:pass@host/db` | Heroku/production DB |
+| `REDIS_URL` | ⚙️ | `redis://localhost:6379/0` | Sidekiq/rate limiting |
+| `SEED_ADMIN_*` | Dev convenience | `admin@example.com`, etc. | Controls seed data |
+| `DATA_RETENTION_OVERRIDES` | Optional | `{"SecurityEvent":730}` | Adjust retention windows (days) |
+| `MONITORING_WEBHOOK_URL` | Optional | `https://hooks.slack.com/...` | Sends compliance alerts to chat/on-call |
 
-```bash
-# Encryption Keys (REQUIRED - generate with: openssl rand -hex 32)
-LOCKBOX_MASTER_KEY="your_lockbox_master_key_here"
-
-# Rails Secret Key Base (auto-generated in development)
-SECRET_KEY_BASE="your_secret_key_base_here"
-
-# Application URL
-APP_URL="https://yourdomain.com"
-MAILER_HOST="yourdomain.com"
-MAILER_SENDER="noreply@yourdomain.com"
-
-# CORS Configuration (comma-separated list)
-ALLOWED_ORIGINS="https://yourdomain.com,https://www.yourdomain.com"
-```
-
-### Optional Configuration
+Example `.env` snippet:
 
 ```bash
-# Seed Data (for development/testing)
-SEED_ADMIN_EMAIL="admin@yourdomain.com"
-SEED_ADMIN_PASSWORD="your_secure_password"
-SEED_ADMIN_FIRST_NAME="Admin"
-SEED_ADMIN_LAST_NAME="User"
+LOCKBOX_MASTER_KEY=$(openssl rand -hex 32)
+SECRET_KEY_BASE=$(rails secret)
+APP_URL="https://app.example.com"
+MAILER_HOST="app.example.com"
+MAILER_SENDER="noreply@app.example.com"
+ALLOWED_ORIGINS="https://app.example.com,https://admin.app.example.com"
 
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/your_app_development"
-
-# Redis (for Sidekiq)
+DATABASE_URL="postgresql://postgres@localhost:5432/hipaa_dev"
 REDIS_URL="redis://localhost:6379/0"
+
+SEED_ADMIN_EMAIL="admin@app.example.com"
+SEED_ADMIN_PASSWORD="SuperSecure123!"
+
+DATA_RETENTION_OVERRIDES='{"SecurityEvent":730,"ConsentRecord":365}'
+MONITORING_WEBHOOK_URL="https://hooks.slack.com/services/XXX/YYY/ZZZ"
 ```
 
 ## Customizing the Application
@@ -99,6 +98,31 @@ user.add_role(:your_role_name)
 - **Logo**: Replace the SVG icons in `app/javascript/App.jsx` with your logo
 - **Favicon**: Replace `app/assets/images/favicon.ico`
 
+### 7. Monitoring & Alerting
+
+- Set `MONITORING_WEBHOOK_URL` to forward compliance/incident events to Slack, PagerDuty, Opsgenie, etc.
+- Test delivery:
+  ```bash
+  rails runner 'Compliance::AuditLogger.log(event_type: "monitoring.test", actor: "ops", resource: "webhook", metadata: {})'
+  tail -f log/compliance.log
+  ```
+- Review `policies/MONITORING_AND_ALERTING_GUIDE.md` for routing examples.
+
+### 8. Consent & Privacy UI
+
+- `/privacy/consent` renders the React consent center backed by `ConsentRecord`.
+- Define the set of consent purposes in `app/javascript/components/ConsentManager.jsx`.
+
+### 9. Data Subject Requests
+
+- Users submit GDPR requests at `/privacy/requests`.
+- Configure background processing (Sidekiq/GoodJob/etc.) so `ProcessDataSubjectRequestJob` runs automatically.
+- Customize the fulfillment logic inside `app/jobs/process_data_subject_request_job.rb`.
+- Manually trigger a job to verify logging/output:
+  ```bash
+  rails runner 'ProcessDataSubjectRequestJob.perform_now(DataSubjectRequest.first.id)'
+  ```
+
 ## Production Checklist
 
 Before deploying to production:
@@ -111,8 +135,11 @@ Before deploying to production:
 - [ ] Set up proper database backups
 - [ ] Configure SSL/TLS certificates
 - [ ] Review security headers in `config/initializers/secure_headers.rb`
-- [ ] Set up monitoring and logging
+- [ ] Set up monitoring and logging (see `MONITORING_WEBHOOK_URL`)
 - [ ] Review rate limiting in `config/initializers/rack_attack.rb`
+- [ ] Schedule `DataRetentionPolicy.purge_expired` (cron/Whenever) and monitor `log/compliance.log`
+- [ ] Run periodic exports of consent + data subject requests for audit evidence
+- [ ] Run `rails runner 'Compliance::AuditLogger.log(event_type: "compliance.healthcheck", actor: "ops", resource: "checklist", metadata: {})'` and store the resulting log entry as evidence
 
 ## Security Notes
 

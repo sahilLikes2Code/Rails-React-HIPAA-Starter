@@ -44,8 +44,23 @@ class Rack::Attack
   # Customize response for throttled requests
   # Use throttled_responder instead of deprecated throttled_response
   self.throttled_responder = lambda do |request|
-    match_data = request.env["rack.attack.match_data"]
-    retry_after = (match_data || {})[:period] || 60
+    match_data = request.env["rack.attack.match_data"] || {}
+    retry_after = match_data[:period] || 60
+
+    if defined?(Compliance::AuditLogger)
+      Compliance::AuditLogger.log(
+        event_type: "rack_attack.block",
+        actor: request.ip,
+        resource: request.path,
+        metadata: {
+          limiter: request.env["rack.attack.matched"] || "unknown",
+          limit: match_data[:limit],
+          period: match_data[:period],
+          discriminator: match_data[:discriminator]
+        }.compact
+      )
+    end
+
     [
       429,
       {

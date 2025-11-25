@@ -22,6 +22,9 @@ Rails.application.routes.draw do
       # Audit logs
       get "audits/phi_access", to: "audits#phi_access"
       resources :audits, only: [:index, :show]
+
+      resources :consent_records, only: [:index, :create, :update]
+      resources :data_subject_requests, only: [:index, :create, :update]
     end
   end
 

@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 # Input validation for user parameters - prevents injection attacks (HIPAA Compliance)
-class UserParamsValidator
-  include Dry::Validation::Contract
+class UserParamsValidator < Dry::Validation::Contract
 
   params do
     required(:email).filled(:string, format?: /\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i)

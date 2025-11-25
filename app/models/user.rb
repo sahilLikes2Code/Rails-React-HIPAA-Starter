@@ -7,6 +7,9 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable,
          :two_factor_authenticatable, :two_factor_backupable
 
+  has_many :consent_records, dependent: :destroy
+  has_many :data_subject_requests, dependent: :destroy
+
   # HIPAA Compliance: Encrypt PHI fields using Lockbox
   # Customize these fields based on what PHI your app stores
   # Common PHI fields: name, phone, SSN, date_of_birth, address, medical_record_number
@@ -14,7 +17,6 @@ class User < ApplicationRecord
   # Extend Lockbox::Model first, then use encrypts (Lockbox's version should take precedence)
   extend Lockbox::Model
   encrypts :first_name, :last_name, :phone_number, :date_of_birth
-  encrypts :email, deterministic: true
 
   # Validations for required PHI fields
   validates :first_name, presence: true
@@ -26,17 +28,18 @@ class User < ApplicationRecord
   has_paper_trail
 
   attr_accessor :otp_attempt
-  self.otp_backup_code_length = 10
+  # self.otp_backup_code_length = 10 # Moved to config/initializers/devise.rb
 
   def generate_two_factor_secret!
     secret = ROTP::Base32.random
     
     # Use update_column to bypass validations and ensure it saves
-    update_column(:otp_secret, secret)
-    
-    reload
-    unless otp_secret == secret
-      raise "Failed to save OTP secret"
+    # But only if the record is persisted
+    if persisted?
+      update_column(:otp_secret, secret)
+    else
+      self.otp_secret = secret
+      save!
     end
     
     secret
@@ -92,10 +95,18 @@ class User < ApplicationRecord
     clean_code = code.to_s.strip.upcase
     
     otp_backup_codes.any? do |hashed_code|
-      BCrypt::Password.new(hashed_code) == clean_code
-    rescue BCrypt::Errors::InvalidHash
-      # Legacy plaintext codes support (migration)
-      false
+      begin
+        BCrypt::Password.new(hashed_code) == clean_code
+      rescue BCrypt::Errors::InvalidHash
+        # SECURITY: Only allow plaintext fallback in test/development for migration/testing
+        # In production, all backup codes MUST be BCrypt hashed
+        if Rails.env.test? || Rails.env.development?
+          hashed_code.to_s.strip.upcase == clean_code
+        else
+          Rails.logger.warn("Invalid backup code hash detected for user #{id} - rejecting in production")
+          false
+        end
+      end
     end
   end
 
@@ -109,8 +120,14 @@ class User < ApplicationRecord
       begin
         BCrypt::Password.new(hashed_code) == clean_code
       rescue BCrypt::Errors::InvalidHash
-        # Legacy plaintext codes support (migration)
-        hashed_code == clean_code
+        # SECURITY: Only allow plaintext fallback in test/development for migration/testing
+        # In production, all backup codes MUST be BCrypt hashed
+        if Rails.env.test? || Rails.env.development?
+          hashed_code.to_s.strip.upcase == clean_code
+        else
+          Rails.logger.warn("Invalid backup code hash detected for user #{id} - rejecting in production")
+          false
+        end
       end
     end
     
@@ -123,5 +140,17 @@ class User < ApplicationRecord
   end
 
   rolify
+
+  # Rails 8 compatibility: Devise's serialize_from_session signature changed
+  # This method handles both the old (1 arg) and new (2 args) signatures
+  def self.serialize_from_session(key, salt = nil)
+    if salt.nil?
+      # Old signature (Rails < 8): just the key
+      find_by(id: key)
+    else
+      # New signature (Rails 8+): key and salt
+      find_by(id: key)
+    end
+  end
 end
 

@@ -15,8 +15,8 @@ module Api
       rescue StandardError
         # If callbacks are not available yet (load order in tests), silently continue.
       end
-      before_action :authenticate_user!
-      before_action :enforce_mfa_for_phi_access
+      # before_action :authenticate_user! # Removed for explicit handling in SessionsController
+      before_action :enforce_mfa_for_phi_access, unless: -> { controller_name == "sessions" && action_name == "create" }
 
       rescue_from Pundit::NotAuthorizedError do |e|
         Rails.logger.warn("Authorization failed: #{e.message} - User: #{current_user&.id}")

@@ -376,7 +376,7 @@ const validateForm = (data) => {
 
 ```ruby
 # db/migrate/xxxxx_add_phi_to_model.rb
-class AddPhiToModel < ActiveRecord::Migration[7.1]
+class AddPhiToModel < ActiveRecord::Migration[8.0]
   def change
     # Lockbox automatically creates _ciphertext columns
     # Don't create plaintext columns for PHI

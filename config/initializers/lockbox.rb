@@ -28,3 +28,29 @@ if Lockbox.master_key.blank?
   end
 end
 
+# NOTE: The following ActiveRecord Encryption configuration was moved to config/application.rb
+# # Configure Active Record Encryption for Rails 8+ (required even with Lockbox)
+# # These keys are generated via `rails db:encryption:init`
+# Rails.application.config.active_record_encryption.primary_key = ENV.fetch("ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY") do
+#   # Only generate temporary keys for test environment
+#   if Rails.env.test?
+#     SecureRandom.hex(32)
+#   else
+#     raise "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY must be set in credentials or environment variable"
+#   end
+# end
+# Rails.application.config.active_record_encryption.deterministic_key = ENV.fetch("ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY") do
+#   if Rails.env.test?
+#     SecureRandom.hex(32)
+#   else
+#     raise "ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY must be set in credentials or environment variable"
+#   end
+# end
+# Rails.application.config.active_record_encryption.key_derivation_salt = ENV.fetch("ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT") do
+#   if Rails.env.test?
+#     SecureRandom.hex(33)
+#   else
+#     raise "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT must be set in credentials or environment variable"
+#   end
+# end
+

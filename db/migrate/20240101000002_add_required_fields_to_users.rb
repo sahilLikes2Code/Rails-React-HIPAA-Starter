@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class AddRequiredFieldsToUsers < ActiveRecord::Migration[7.1]
+class AddRequiredFieldsToUsers < ActiveRecord::Migration[8.0]
   def up
     # Note: We don't add NOT NULL constraints here because:
     # 1. Lockbox encrypts values during save, and blank values might not encrypt

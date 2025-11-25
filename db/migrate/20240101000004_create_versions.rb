@@ -2,7 +2,7 @@
 
 # Paper Trail versions table for audit logging (HIPAA Compliance)
 # This table stores all changes to models that have has_paper_trail
-class CreateVersions < ActiveRecord::Migration[7.1]
+class CreateVersions < ActiveRecord::Migration[8.0]
   def change
     create_table :versions, id: :uuid do |t|
       t.string :item_type, null: false

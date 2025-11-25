@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class RemoveNotNullFromPhiFields < ActiveRecord::Migration[7.1]
+class RemoveNotNullFromPhiFields < ActiveRecord::Migration[8.0]
   def change
     # Remove NOT NULL constraints from PHI ciphertext columns
     # Application-level validations enforce required fields

@@ -150,7 +150,10 @@ RSpec.describe User, type: :model do
       it "saves backup codes to database" do
         codes = user.generate_backup_codes!
         user.reload
-        expect(user.otp_backup_codes).to eq(codes)
+        # Verify that the database stores hashed codes, but the method returns plaintext
+        codes.each do |code|
+          expect(user.valid_backup_code?(code)).to be true
+        end
       end
     end
 
@@ -158,7 +161,9 @@ RSpec.describe User, type: :model do
       let(:user) { create(:user) }
 
       before do
-        user.update_column(:otp_backup_codes, ["ABCD1234", "EFGH5678"])
+        # Store hashed backup codes to match expected behavior of generate_backup_codes!
+        hashed_codes = [BCrypt::Password.create("ABCD1234").to_s, BCrypt::Password.create("EFGH5678").to_s]
+        user.update_column(:otp_backup_codes, hashed_codes)
       end
 
       it "validates a correct backup code" do

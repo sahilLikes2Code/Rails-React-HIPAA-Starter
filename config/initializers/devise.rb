@@ -21,6 +21,14 @@ Devise.setup do |config|
 
   config.sign_out_via = :delete
 
+  # For API-only applications, prevent Devise from redirecting on authentication failure
+  config.navigational_formats = []
+
+  # Use custom failure app for API requests to return JSON errors
+  config.warden do |manager|
+    manager.failure_app = ApiFailureApp
+  end
+
   # Two-factor authentication configuration (HIPAA Compliance)
   # MFA is enabled on User model - users must set up TOTP after registration
   # See: https://github.com/tinybike/devise-two-factor
@@ -28,5 +36,6 @@ Devise.setup do |config|
   # Session timeout (HIPAA Compliance)
   # Sessions expire after 30 minutes of inactivity
   config.timeout_in = 30.minutes
+  config.otp_backup_code_length = 10 # Moved from User model
 end
 

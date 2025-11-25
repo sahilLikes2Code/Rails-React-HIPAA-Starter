@@ -2,7 +2,7 @@ source "https://rubygems.org"
 
 ruby "3.3.0"
 
-gem "rails", "~> 7.1.3"
+gem "rails", "~> 8.0.0"
 
 gem "sprockets-rails"
 gem "pg", "~> 1.1"
@@ -47,18 +47,15 @@ group :development, :test do
   gem "debug", platforms: %i[mri windows]
   gem "byebug", platforms: [:mri, :mingw, :x64_mingw]
   gem "factory_bot_rails"
-
-  group :rubocop do
-    gem "rubocop", ">= 1.25.1", require: false
-    gem "rubocop-minitest", require: false
-    gem "rubocop-packaging", require: false
-    gem "rubocop-performance", require: false
-    gem "rubocop-rails", require: false
-    gem "rubocop-md", require: false
-    gem "erb_lint", require: false
-    gem "htmlbeautifier", require: false
-  end
-
+  gem "rubocop", ">= 1.25.1", require: false
+  gem "rubocop-minitest", require: false
+  gem "rubocop-packaging", require: false
+  gem "rubocop-performance", require: false
+  gem "rubocop-rails", require: false
+  gem "rubocop-md", require: false
+  gem "erb_lint", require: false
+  gem "htmlbeautifier", require: false
+  gem "rubycritic", require: false
   gem "rspec-rails", "~> 6.1.0"
   gem "faker"
 end

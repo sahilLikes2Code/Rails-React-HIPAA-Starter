@@ -121,7 +121,7 @@ bin/dev
 
 ## Features
 
-- **Rails 7.1** with React 18 integration
+- **Rails 8.0** with React 18 integration
 - **HIPAA Compliance** - Encryption, audit logging, MFA support
 - **Authentication** - Devise with two-factor authentication support (OAuth2 via Doorkeeper - pending)
 - **Code Quality** - Rubocop, Prettier, ESLint
@@ -179,10 +179,76 @@ The User model has the following HIPAA features **already enabled**:
 
 - [x] Secure headers configured (already set up in initializer)
 - [ ] Set up centralized logging (CloudWatch/ELK)
-- [ ] Implement data retention policies
+- [x] Implement data retention policies
 - [ ] Set up backup and disaster recovery
 - [ ] Configure security scanning in CI/CD (Brakeman, bundler-audit)
-- [ ] Review and customize policy templates in `policies/` directory
+- [x] Review and customize policy templates in `policies/` directory
+
+## SOC 2 & GDPR Enhancements
+
+- **Policy Templates:** SOC 2-ready documents for access control, change management, vendor risk, incident response, and a control mapping matrix (`policies/SOC2_*`).
+- **Audit Evidence:** Structured compliance events flow through `Compliance::AuditLogger` → `log/compliance.log`, with optional webhook fan-out via `MONITORING_WEBHOOK_URL`.
+- **Monitoring Hooks:** Rack::Attack blocks and 5xx responses emit alerts; see `config/initializers/monitoring_hooks.rb` and `policies/MONITORING_AND_ALERTING_GUIDE.md`.
+- **Consent Center:** React UI at `/privacy/consent` backed by `ConsentRecord` with retention + audit logging for GDPR Article 7.
+- **Data Subject Requests:** `/privacy/requests` lets users file access/export/erasure tickets tracked in `data_subject_requests`, processed by `ProcessDataSubjectRequestJob`, and documented in `policies/DATA_SUBJECT_REQUESTS_PLAYBOOK.md`.
+- **Retention Automation:** `DataRetentionPolicy` handles HIPAA, SOC 2, and GDPR requirements with ENV overrides (`DATA_RETENTION_OVERRIDES`) and a helper for “right to be forgotten” deletions.
+
+## Production Compliance Walkthrough
+
+Use this checklist to go from a fresh clone to a production-ready deployment with HIPAA/SOC 2/GDPR controls.
+
+1. **Clone + Install**
+   - `git clone … && cd …`
+   - Create `.env` or use your secrets store; copy variables from `CONFIGURATION.md`.
+   - Run `bin/setup` (creates DB, installs packages, generates credentials).
+2. **Database + Seeds**
+   - Review `db/seeds.rb` and set `SEED_ADMIN_*` env vars.
+   - Run `rails db:prepare && rails db:seed`.
+   - Assign roles (e.g., via Rails console) so admins can reach `/admin/audits`, `/privacy/*`.
+3. **Run Migrations for Privacy Features**
+   - `rails db:migrate` to create `consent_records` and `data_subject_requests`.
+   - Verify tables exist: `rails dbconsole` → `\dt consent_records`.
+4. **Enable Background Jobs**
+   - Set `REDIS_URL`, start Sidekiq (`bundle exec sidekiq`) or your chosen adapter so `ProcessDataSubjectRequestJob` runs.
+5. **Configure Compliance Env Vars**
+   - `export DATA_RETENTION_OVERRIDES='{"SecurityEvent":730,"ConsentRecord":365}'`
+   - `export MONITORING_WEBHOOK_URL=https://hooks.example.com/...` (or add to credentials).
+6. **Policies & Documentation**
+   - Customize every template in `policies/` (HIPAA, SOC 2, GDPR) and obtain exec/legal sign-off.
+   - Record where signed copies live (internal drive, compliance tool).
+7. **Logging & Monitoring Verification**
+   - Start the app (`bin/dev`) and trigger events:
+     - Hit `/users/sign_in` with wrong creds to see `rack_attack.block`.
+     - Call `rails runner 'Compliance::AuditLogger.log(event_type: "monitoring.test", actor: "ops", resource: "doc", metadata: {})'`
+   - Tail `log/compliance.log` to confirm JSON output.
+   - If `MONITORING_WEBHOOK_URL` is set, confirm the alert arrives in Slack/PagerDuty.
+8. **Consent Center Check**
+   - Sign in as a standard user.
+   - Visit `/privacy/consent` and toggle non-required purposes; confirm rows change in `consent_records`.
+9. **Data Subject Request Flow**
+   - Visit `/privacy/requests`, submit each request type.
+   - Ensure entries appear in the UI; check DB + logs for `gdpr.request.*` events after Sidekiq processes jobs.
+10. **Retention Jobs**
+    - Schedule `DataRetentionPolicy.purge_expired` via cron/Whenever or run manually:
+      ```bash
+      rails runner 'DataRetentionPolicy.purge_expired'
+      ```
+    - Document purge logs in your evidence folder.
+11. **Final Production Tasks**
+    - Configure SSL, backups, WAF, and CI security scanners.
+    - Link monitoring/alerting dashboards and access reviews to `policies/SOC2_CONTROL_MAPPING.md`.
+
+### Environment Variables (Compliance)
+
+```bash
+# Optional: override retention (JSON of model => days)
+DATA_RETENTION_OVERRIDES='{"SecurityEvent":730,"ConsentRecord":365}'
+
+# Optional: send audit/monitoring events to Slack/PagerDuty/etc.
+MONITORING_WEBHOOK_URL="https://hooks.example.com/..."
+```
+
+See `policies/AUDIT_LOGGING_GUIDE.md` and `policies/SOC2_CONTROL_MAPPING.md` for evidence mapping across HIPAA/SOC 2/GDPR.
 
 ## Project Structure
 
@@ -222,7 +288,7 @@ db/migrate/           # Database migrations (includes User model with MFA fields
 ## Key Gems
 
 ### Core
-- `rails ~> 7.1.3` - Web framework
+- `rails ~> 8.0.0` - Web framework
 - `react-rails` - React integration
 - `devise ~> 4.9` - Authentication
 - `doorkeeper` - OAuth2 provider (pending)

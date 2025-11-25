@@ -73,3 +73,5 @@ pnpm-debug.log*
 .yarn/
 .yarnrc.yml
 .yarn-integrity
+
+/config/credentials/test.key
